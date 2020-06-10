@@ -6,6 +6,8 @@ Working:
 - cpu 1,5,15 minute load metrics
 - cpu usage metrics
 - process metrics
+- netstat metrics
+- nstat metrics
 
 
 TODO:
@@ -13,4 +15,3 @@ TODO:
 - network usage metrics
 - disk usage metrics
 - diskio metrics
-- netstat metrics
