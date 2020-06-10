@@ -508,7 +508,7 @@ f__nstat_metrics() {
         
             let element_counter=0
         
-            for nstat_element in ${nstat_fields[@]} ; do
+            for nstat_element in ${nstat_fields[*]} ; do
         
                 if [ "${influx_nstat_key}" = "${nstat_element}" ]; then
                     eval "influx_payload_test=\"\$${influx_payload_name}\""
