@@ -1,4 +1,4 @@
-An ash based influxdb client for OpenWRT
+A bash based influxdb client for OpenWRT
 
 ## Working:
 - memory metrics
