@@ -12,6 +12,6 @@ Working:
 
 TODO:
 ====
-- network usage metrics
+- network adapter metrics
 - disk usage metrics
 - diskio metrics
