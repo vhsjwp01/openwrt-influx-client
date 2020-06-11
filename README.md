@@ -14,7 +14,7 @@ A bash based influxdb client for OpenWRT
 - diskio metrics
 
 ## BEFORE YOU INSTALL:
-- Needed runtime commands
+- Needed runtime commands:
 ```opkg install coreutils curl bash bc```
-- Helpful additional commands
+- Helpful additional commands:
 ```opkg install coreutils-cksum diffutils htop vim```
