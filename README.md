@@ -8,10 +8,9 @@ Working:
 - process metrics
 - netstat metrics
 - nstat metrics
-
+- network adapter metrics
 
 TODO:
 ====
-- network adapter metrics
 - disk usage metrics
 - diskio metrics

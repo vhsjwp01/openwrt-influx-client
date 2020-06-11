@@ -360,6 +360,7 @@ f__memory_metrics() {
     return ${return_code}
 }
 
+# WHAT: Process metrics
 f__process_metrics() {
     let return_code=${SUCCESS}
 
@@ -367,7 +368,7 @@ f__process_metrics() {
     local timestamp=$(date +%s)
     local timestamp_ns=$(echo "${timestamp}*1000000000" | bc)
 
-    local current_proc_status=$(/bin/nice -19 find /proc/[0-9]*/status -exec egrep -i '^\bstate\b' '{}' \;)
+    local current_proc_status=$(/bin/nice -19 find /proc/[0-9]*/status -exec egrep -i '^\bstate\b' '{}' \; 2> /dev/null)
     local current_proc_stat=$(awk '{print $0}' /proc/stat)
 
     local blocked=$(echo "${current_proc_stat}" | awk '/^procs_blocked/ {print $NF}')
@@ -377,8 +378,8 @@ f__process_metrics() {
     local running=$(echo "${current_proc_stat}" | awk '/^procs_running/ {print $NF}')
     local sleeping=$(echo "${current_proc_status}" | egrep -ic "sleeping")
     local stopped=$(echo "${current_proc_status}" | egrep -ic "stopped")
-    local total=$(/bin/nice -19 find /proc/ -maxdepth 1 -type d | egrep "/[0-9]" | wc -l | awk '{print $1}')
-    local total_threads=$(/bin/nice -19 find /proc/[0-9]*/task/[0-9]*/* -maxdepth 1 -type d | wc -l | awk '{print $1}')
+    local total=$(/bin/nice -19 find /proc/ -maxdepth 1 -type d 2> /dev/null | egrep "/[0-9]" | wc -l | awk '{print $1}')
+    local total_threads=$(/bin/nice -19 find /proc/[0-9]*/task/[0-9]*/* -maxdepth 1 -type d 2> /dev/null | wc -l | awk '{print $1}')
     local unknown=$(echo "${current_proc_status}" | egrep -vic "dead|idle|running|sleeping|stopped|zombie")
     local zombies=$(echo "${current_proc_status}" | egrep -ic "zombie")
 
@@ -390,6 +391,7 @@ f__process_metrics() {
     return ${return_code}
 }
 
+# WHAT: 'netstat -atun' metrics
 f__netstat_metrics() {
     let return_code=${SUCCESS}
 
@@ -397,33 +399,34 @@ f__netstat_metrics() {
     local timestamp=$(date +%s)
     local timestamp_ns=$(echo "${timestamp}*1000000000" | bc)
 
-    local raw_netstat_info=$(netstat -atu)
+    local raw_netstat_info=$(netstat -atun)
 
     # Valid states:
     # LISTEN ESTABLISHED SYN_SENT SYN_RECV LAST_ACK CLOSE_WAIT TIME_WAIT CLOSED CLOSING FIN_WAIT1 FIN_WAIT2
     local all_connection_states="LISTEN|ESTABLISHED|SYN_SENT|SYN_RECV|LAST_ACK|CLOSE_WAIT|TIME_WAIT|CLOSED|CLOSING|FIN_WAIT1|FIN_WAIT2"
 
-    local last_tcp_close=$(echo "${raw_netstat_info}" | egrep -c "\bCLOSED\b")
-    local last_tcp_close_wait=$(echo "${raw_netstat_info}" | egrep -c "\bCLOSE_WAIT\b")
-    local last_tcp_closing=$(echo "${raw_netstat_info}" | egrep -c "\bCLOSING\b")
-    local last_tcp_established=$(echo "${raw_netstat_info}" | egrep -c "\bESTABLISHED\b")
-    local last_tcp_fin_wait1=$(echo "${raw_netstat_info}" | egrep -c "\bFIN_WAIT1\b")
-    local last_tcp_fin_wait2=$(echo "${raw_netstat_info}" | egrep -c "\bFIN_WAIT2\b")
-    local last_tcp_last_ack=$(echo "${raw_netstat_info}" | egrep -c "\bLAST_ACK\b")
-    local last_tcp_listen=$(echo "${raw_netstat_info}" | egrep -c "\bLISTEN\b")
-    local last_tcp_none=$(echo "${raw_netstat_info}" | egrep -cv "${all_connection_states}")
-    local last_tcp_syn_recv=$(echo "${raw_netstat_info}" | egrep -c "\bSYN_RECV\b")
-    local last_tcp_syn_sent=$(echo "${raw_netstat_info}" | egrep -c "\bSYN_SENT\b")
-    local last_tcp_time_wait=$(echo "${raw_netstat_info}" | egrep -c "\bTIME_WAIT\b")
-    local last_udp_socket=$(echo "${raw_netstat_info}" | egrep -c "^udp")
+    local tcp_close=$(echo "${raw_netstat_info}" | egrep -c "\bCLOSED\b")
+    local tcp_close_wait=$(echo "${raw_netstat_info}" | egrep -c "\bCLOSE_WAIT\b")
+    local tcp_closing=$(echo "${raw_netstat_info}" | egrep -c "\bCLOSING\b")
+    local tcp_established=$(echo "${raw_netstat_info}" | egrep -c "\bESTABLISHED\b")
+    local tcp_fin_wait1=$(echo "${raw_netstat_info}" | egrep -c "\bFIN_WAIT1\b")
+    local tcp_fin_wait2=$(echo "${raw_netstat_info}" | egrep -c "\bFIN_WAIT2\b")
+    local tcp_last_ack=$(echo "${raw_netstat_info}" | egrep -c "\bLAST_ACK\b")
+    local tcp_listen=$(echo "${raw_netstat_info}" | egrep -c "\bLISTEN\b")
+    local tcp_none=$(echo "${raw_netstat_info}" | egrep -cv "${all_connection_states}")
+    local tcp_syn_recv=$(echo "${raw_netstat_info}" | egrep -c "\bSYN_RECV\b")
+    local tcp_syn_sent=$(echo "${raw_netstat_info}" | egrep -c "\bSYN_SENT\b")
+    local tcp_time_wait=$(echo "${raw_netstat_info}" | egrep -c "\bTIME_WAIT\b")
+    local udp_socket=$(echo "${raw_netstat_info}" | egrep -c "^udp")
 
-    local influx_payload="last_tcp_close=${last_tcp_close},last_tcp_close_wait=${last_tcp_close_wait},last_tcp_closing=${last_tcp_closing},last_tcp_established=${last_tcp_established},last_tcp_fin_wait1=${last_tcp_fin_wait1},last_tcp_fin_wait2=${last_tcp_fin_wait2},last_tcp_last_ack=${last_tcp_last_ack},last_tcp_listen=${last_tcp_listen},last_tcp_none=${last_tcp_none},last_tcp_syn_recv=${last_tcp_syn_recv},last_tcp_syn_sent=${last_tcp_syn_sent},last_tcp_time_wait=${last_tcp_time_wait},last_udp_socket=${last_udp_socket}"
+    local influx_payload="tcp_close=${tcp_close}i,tcp_close_wait=${tcp_close_wait}i,tcp_closing=${tcp_closing}i,tcp_established=${tcp_established}i,tcp_fin_wait1=${tcp_fin_wait1}i,tcp_fin_wait2=${tcp_fin_wait2}i,tcp_last_ack=${tcp_last_ack}i,tcp_listen=${tcp_listen}i,tcp_none=${tcp_none}i,tcp_syn_recv=${tcp_syn_recv}i,tcp_syn_sent=${tcp_syn_sent}i,tcp_time_wait=${tcp_time_wait}i,udp_socket=${udp_socket}i"
 
     eval "curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
 
     return ${return_code}
 }
 
+# WHAT: /proc/net/{netstat,snmp,snmp6} metrics
 f__nstat_metrics() {
     let return_code=${SUCCESS}
 
@@ -446,55 +449,55 @@ f__nstat_metrics() {
     if [ -e "${Icmp_file}" ]; then
         local nstat_Icmp_fields=$(egrep "^Icmp: [a-zA-Z]" "${Icmp_file}" | awk -F': ' '{print $NF}')
         local nstat_Icmp_values=$(egrep "^Icmp: [0-9]" "${Icmp_file}" | awk -F': ' '{print $NF}')
-        local influx_Icmp_fields="last_IcmpInDestUnreachs last_IcmpInEchoReps last_IcmpInEchos last_IcmpInErrors last_IcmpInMsgs last_IcmpInTimeExcds last_IcmpMsgInType0 last_IcmpMsgInType11 last_IcmpMsgInType3 last_IcmpMsgInType8 last_IcmpMsgOutType0 last_IcmpMsgOutType3 last_IcmpMsgOutType8 last_IcmpOutDestUnreachs last_IcmpOutEchoReps last_IcmpOutEchos last_IcmpOutMsgs"
+        local influx_Icmp_fields="IcmpInDestUnreachs IcmpInEchoReps IcmpInEchos IcmpInErrors IcmpInMsgs IcmpInTimeExcds IcmpMsgInType0 IcmpMsgInType11 IcmpMsgInType3 IcmpMsgInType8 IcmpMsgOutType0 IcmpMsgOutType3 IcmpMsgOutType8 IcmpOutDestUnreachs IcmpOutEchoReps IcmpOutEchos IcmpOutMsgs"
     fi
     
     if [ -e "${Icmp6_file}" ]; then
         local nstat_Icmp6_fields=$(egrep "^Icmp6" "${Icmp6_file}" | awk '{print $1}' | sed -e 's|^Icmp6||g')
         local nstat_Icmp6_values=$(egrep "^Icmp6" "${Icmp6_file}" | awk '{print $2}')
-        local influx_Icmp6_fields="last_Icmp6InDestUnreachs last_Icmp6InGroupMembQueries last_Icmp6InGroupMembReductions last_Icmp6InGroupMembResponses last_Icmp6InMLDv2Reports last_Icmp6InMsgs last_Icmp6InNeighborAdvertisements last_Icmp6InNeighborSolicits last_Icmp6InRouterAdvertisements last_Icmp6InType1 last_Icmp6InType130 last_Icmp6InType131 last_Icmp6InType132 last_Icmp6InType134 last_Icmp6InType135 last_Icmp6InType136 last_Icmp6InType143 last_Icmp6OutDestUnreachs last_Icmp6OutGroupMembResponses last_Icmp6OutMLDv2Reports last_Icmp6OutMsgs last_Icmp6OutNeighborAdvertisements last_Icmp6OutNeighborSolicits last_Icmp6OutRouterSolicits last_Icmp6OutType1 last_Icmp6OutType131 last_Icmp6OutType133 last_Icmp6OutType135 last_Icmp6OutType136 last_Icmp6OutType143"
+        local influx_Icmp6_fields="Icmp6InDestUnreachs Icmp6InGroupMembQueries Icmp6InGroupMembReductions Icmp6InGroupMembResponses Icmp6InMLDv2Reports Icmp6InMsgs Icmp6InNeighborAdvertisements Icmp6InNeighborSolicits Icmp6InRouterAdvertisements Icmp6InType1 Icmp6InType130 Icmp6InType131 Icmp6InType132 Icmp6InType134 Icmp6InType135 Icmp6InType136 Icmp6InType143 Icmp6OutDestUnreachs Icmp6OutGroupMembResponses Icmp6OutMLDv2Reports Icmp6OutMsgs Icmp6OutNeighborAdvertisements Icmp6OutNeighborSolicits Icmp6OutRouterSolicits Icmp6OutType1 Icmp6OutType131 Icmp6OutType133 Icmp6OutType135 Icmp6OutType136 Icmp6OutType143"
     fi
     
     if [ -e "${Ip_file}" ]; then
         local nstat_Ip_fields=$(egrep "^Ip: [a-zA-Z]" "${Ip_file}" | awk -F': ' '{print $NF}')
         local nstat_Ip_values=$(egrep "^Ip: [0-9]" "${Ip_file}" | awk -F': ' '{print $NF}')
-        local influx_Ip_fields="last_IpDefaultTTL last_IpForwarding last_IpFragCreates last_IpFragOKs last_IpInAddrErrors last_IpInDelivers last_IpInReceives last_IpInUnknownProtos last_IpOutDiscards last_IpOutNoRoutes last_IpOutRequests last_IpReasmOKs last_IpReasmReqds"
+        local influx_Ip_fields="IpDefaultTTL IpForwarding IpFragCreates IpFragOKs IpInAddrErrors IpInDelivers IpInReceives IpInUnknownProtos IpOutDiscards IpOutNoRoutes IpOutRequests IpReasmOKs IpReasmReqds"
     fi
     
     if [ -e "${Ip6_file}" ]; then
         local nstat_Ip6_fields=$(egrep "^Ip6" "${Ip6_file}" | awk '{print $1}' | sed -e 's|^Ip6||g')
         local nstat_Ip6_values=$(egrep "^Ip6" "${Ip6_file}" | awk '{print $2}')
-        local influx_Ip6_fields="last_Ip6InDelivers last_Ip6InMcastOctets last_Ip6InMcastPkts last_Ip6InNoECTPkts last_Ip6InNoRoutes last_Ip6InOctets last_Ip6InReceives last_Ip6InTruncatedPkts last_Ip6OutDiscards last_Ip6OutMcastOctets last_Ip6OutMcastPkts last_Ip6OutNoRoutes last_Ip6OutOctets last_Ip6OutRequests"
+        local influx_Ip6_fields="Ip6InDelivers Ip6InMcastOctets Ip6InMcastPkts Ip6InNoECTPkts Ip6InNoRoutes Ip6InOctets Ip6InReceives Ip6InTruncatedPkts Ip6OutDiscards Ip6OutMcastOctets Ip6OutMcastPkts Ip6OutNoRoutes Ip6OutOctets Ip6OutRequests"
     fi
     
     if [ -e "${Udp_file}" ]; then
         local nstat_Udp_fields=$(egrep "^Udp: [a-zA-Z]" "${Udp_file}" | awk -F': ' '{print $NF}')
         local nstat_Udp_values=$(egrep "^Udp: [0-9]" "${Udp_file}" | awk -F': ' '{print $NF}')
-        local influx_Udp_fields="last_UdpIgnoredMulti last_UdpInCsumErrors last_UdpInDatagrams last_UdpInErrors last_UdpNoPorts last_UdpOutDatagrams"
+        local influx_Udp_fields="UdpIgnoredMulti UdpInCsumErrors UdpInDatagrams UdpInErrors UdpNoPorts UdpOutDatagrams"
     fi
     
     if [ -e "${Udp6_file}" ]; then
         local nstat_Udp6_fields=$(egrep "^Udp6" "${Udp6_file}" | awk '{print $1}' | sed -e 's|^Udp6||g')
         local nstat_Udp6_values=$(egrep "^Udp6" "${Udp6_file}" | awk '{print $2}')
-        local influx_Udp6_fields="last_Udp6IgnoredMulti last_Udp6InDatagrams last_Udp6NoPorts last_Udp6OutDatagrams"
+        local influx_Udp6_fields="Udp6IgnoredMulti Udp6InDatagrams Udp6NoPorts Udp6OutDatagrams"
     fi
     
     if [ -e "${Tcp_file}" ]; then
         local nstat_Tcp_fields=$(egrep "^Tcp: [a-zA-Z]" "${Tcp_file}" | awk -F': ' '{print $NF}')
         local nstat_Tcp_values=$(egrep "^Tcp: [0-9]" "${Tcp_file}" | awk -F': ' '{print $NF}')
-        local influx_Tcp_fields="last_TcpActiveOpens last_TcpAttemptFails last_TcpCurrEstab last_TcpEstabResets last_TcpInCsumErrors last_TcpInErrs last_TcpInSegs last_TcpMaxConn last_TcpOutRsts last_TcpOutSegs last_TcpPassiveOpens last_TcpRetransSegs last_TcpRtoAlgorithm last_TcpRtoMax last_TcpRtoMin"
+        local influx_Tcp_fields="TcpActiveOpens TcpAttemptFails TcpCurrEstab TcpEstabResets TcpInCsumErrors TcpInErrs TcpInSegs TcpMaxConn TcpOutRsts TcpOutSegs TcpPassiveOpens TcpRetransSegs TcpRtoAlgorithm TcpRtoMax TcpRtoMin"
     fi
     
     if [ -e "${TcpExt_file}" ]; then
         local nstat_TcpExt_fields=$(egrep "^TcpExt: [a-zA-Z]" "${TcpExt_file}" | awk -F': ' '{print $NF}')
         local nstat_TcpExt_values=$(egrep "^TcpExt: [0-9]" "${TcpExt_file}" | awk -F': ' '{print $NF}')
-        local influx_TcpExt_fields="last_TcpExtDelayedACKLocked last_TcpExtDelayedACKLost last_TcpExtDelayedACKs last_TcpExtEmbryonicRsts last_TcpExtOutOfWindowIcmps last_TcpExtPAWSEstab last_TcpExtPruneCalled last_TcpExtTCPACKSkippedSeq last_TcpExtTCPACKSkippedSynRecv last_TcpExtTCPAbortOnClose last_TcpExtTCPAbortOnData last_TcpExtTCPAbortOnTimeout last_TcpExtTCPAutoCorking last_TcpExtTCPBacklogDrop last_TcpExtTCPChallengeACK last_TcpExtTCPDSACKIgnoredNoUndo last_TcpExtTCPDSACKIgnoredOld last_TcpExtTCPDSACKOfoRecv last_TcpExtTCPDSACKOfoSent last_TcpExtTCPDSACKOldSent last_TcpExtTCPDSACKRecv last_TcpExtTCPDSACKUndo last_TcpExtTCPDirectCopyFromBacklog last_TcpExtTCPDirectCopyFromPrequeue last_TcpExtTCPFastRetrans last_TcpExtTCPForwardRetrans last_TcpExtTCPFromZeroWindowAdv last_TcpExtTCPFullUndo last_TcpExtTCPHPAcks last_TcpExtTCPHPHits last_TcpExtTCPHystartDelayCwnd last_TcpExtTCPHystartDelayDetect last_TcpExtTCPHystartTrainCwnd last_TcpExtTCPHystartTrainDetect last_TcpExtTCPKeepAlive last_TcpExtTCPLossProbeRecovery last_TcpExtTCPLossProbes last_TcpExtTCPLossUndo last_TcpExtTCPLostRetransmit last_TcpExtTCPOFOMerge last_TcpExtTCPOFOQueue last_TcpExtTCPOrigDataSent last_TcpExtTCPPartialUndo last_TcpExtTCPPrequeued last_TcpExtTCPPureAcks last_TcpExtTCPRcvCoalesce last_TcpExtTCPRcvCollapsed last_TcpExtTCPRetransFail last_TcpExtTCPSACKReorder last_TcpExtTCPSYNChallenge last_TcpExtTCPSackFailures last_TcpExtTCPSackMerged last_TcpExtTCPSackRecovery last_TcpExtTCPSackRecoveryFail last_TcpExtTCPSackShiftFallback last_TcpExtTCPSackShifted last_TcpExtTCPSlowStartRetrans last_TcpExtTCPSpuriousRTOs last_TcpExtTCPSpuriousRtxHostQueues last_TcpExtTCPSynRetrans last_TcpExtTCPTSReorder last_TcpExtTCPTimeouts last_TcpExtTCPToZeroWindowAdv last_TcpExtTCPWantZeroWindowAdv last_TcpExtTCPWinProbe last_TcpExtTW"
+        local influx_TcpExt_fields="TcpExtDelayedACKLocked TcpExtDelayedACKLost TcpExtDelayedACKs TcpExtEmbryonicRsts TcpExtOutOfWindowIcmps TcpExtPAWSEstab TcpExtPruneCalled TcpExtTCPACKSkippedSeq TcpExtTCPACKSkippedSynRecv TcpExtTCPAbortOnClose TcpExtTCPAbortOnData TcpExtTCPAbortOnTimeout TcpExtTCPAutoCorking TcpExtTCPBacklogDrop TcpExtTCPChallengeACK TcpExtTCPDSACKIgnoredNoUndo TcpExtTCPDSACKIgnoredOld TcpExtTCPDSACKOfoRecv TcpExtTCPDSACKOfoSent TcpExtTCPDSACKOldSent TcpExtTCPDSACKRecv TcpExtTCPDSACKUndo TcpExtTCPDirectCopyFromBacklog TcpExtTCPDirectCopyFromPrequeue TcpExtTCPFastRetrans TcpExtTCPForwardRetrans TcpExtTCPFromZeroWindowAdv TcpExtTCPFullUndo TcpExtTCPHPAcks TcpExtTCPHPHits TcpExtTCPHystartDelayCwnd TcpExtTCPHystartDelayDetect TcpExtTCPHystartTrainCwnd TcpExtTCPHystartTrainDetect TcpExtTCPKeepAlive TcpExtTCPLossProbeRecovery TcpExtTCPLossProbes TcpExtTCPLossUndo TcpExtTCPLostRetransmit TcpExtTCPOFOMerge TcpExtTCPOFOQueue TcpExtTCPOrigDataSent TcpExtTCPPartialUndo TcpExtTCPPrequeued TcpExtTCPPureAcks TcpExtTCPRcvCoalesce TcpExtTCPRcvCollapsed TcpExtTCPRetransFail TcpExtTCPSACKReorder TcpExtTCPSYNChallenge TcpExtTCPSackFailures TcpExtTCPSackMerged TcpExtTCPSackRecovery TcpExtTCPSackRecoveryFail TcpExtTCPSackShiftFallback TcpExtTCPSackShifted TcpExtTCPSlowStartRetrans TcpExtTCPSpuriousRTOs TcpExtTCPSpuriousRtxHostQueues TcpExtTCPSynRetrans TcpExtTCPTSReorder TcpExtTCPTimeouts TcpExtTCPToZeroWindowAdv TcpExtTCPWantZeroWindowAdv TcpExtTCPWinProbe TcpExtTW"
     fi
    
     if [ -e "${IpExt_file}" ]; then
         local nstat_IpExt_fields=$(egrep "^IpExt: [a-zA-Z]" "${IpExt_file}" | awk -F': ' '{print $NF}')
         local nstat_IpExt_values=$(egrep "^IpExt: [0-9]" "${IpExt_file}" | awk -F': ' '{print $NF}')
-        local influx_IpExt_fields="last_IpExtInBcastOctets last_IpExtInBcastPkts last_IpExtInCEPkts last_IpExtInECT0Pkts last_IpExtInMcastOctets last_IpExtInMcastPkts last_IpExtInNoECTPkts last_IpExtInNoRoutes last_IpExtInOctets last_IpExtInTruncatedPkts last_IpExtOutBcastOctets last_IpExtOutBcastPkts last_IpExtOutMcastOctets last_IpExtOutMcastPkts last_IpExtOutOctets"
+        local influx_IpExt_fields="IpExtInBcastOctets IpExtInBcastPkts IpExtInCEPkts IpExtInECT0Pkts IpExtInMcastOctets IpExtInMcastPkts IpExtInNoECTPkts IpExtInNoRoutes IpExtInOctets IpExtInTruncatedPkts IpExtOutBcastOctets IpExtOutBcastPkts IpExtOutMcastOctets IpExtOutMcastPkts IpExtOutOctets"
     fi
 
     local canary_file=""
@@ -531,7 +534,7 @@ f__nstat_metrics() {
         if [ ! -z "${nstat_fields[0]}" ]; then
         
             for influx_field in ${influx_fields} ; do
-                influx_nstat_key=$(echo "${influx_field}" | sed -e "s|^last_${field_regex}||g")
+                influx_nstat_key=$(echo "${influx_field}" | sed -e "s|${field_regex}||g")
             
                 let element_counter=0
             
@@ -573,6 +576,87 @@ f__nstat_metrics() {
     return ${return_code}
 }
 
+# WHAT: /sys/class/net/<iface>/statistics metrics
+f__net_metrics() {
+    let return_code=${SUCCESS}
+
+    local influx_payload=""
+    local series=""
+
+    local timestamp=""
+    local timestamp_ns=""
+
+    local influx_attribs="bytes_recv bytes_sent"
+    local measurement_interval="3"
+
+    # Get our interfaces, ignore lo
+    sys_class_net="/sys/class/net"
+    local network_interfaces=$(for iface in $(ls ${sys_class_net} 2> /dev/null) ; do echo "${iface}" ; done | egrep -v "^lo$" | sort)
+
+    if [ ! -z "${network_interfaces}" ]; then
+
+        for network_interface in ${network_interfaces} ; do
+            influx_payload=""
+            series="net,host=${my_hostname},interface=${network_interface}"
+            local timestamp=$(date +%s)
+            local timestamp_ns=$(echo "${timestamp}*1000000000" | bc)
+
+            # Compute the mean bytes sent and received over a '${measurement_interval}' second interval
+            for influx_attrib in ${influx_attribs} ; do
+
+                case ${influx_attrib} in 
+
+                    bytes_recv)
+                        metrics_file="${sys_class_net}/${network_interface}/statistics/rx_packets"
+                    ;;
+
+                    bytes_sent)
+                        metrics_file="${sys_class_net}/${network_interface}/statistics/tx_packets"
+                    ;;
+
+                esac
+
+                if [ -e "${metrics_file}" ]; then
+                    let countdown=${measurement_interval}
+                    local mean=""
+                    local value=""
+
+                    while [ ${countdown} -gt 0 ]; do
+                        value=$(awk '{print $0}' "${metrics_file}")
+
+                        if [ -z "${mean}" ]; then
+                            let mean=${value}
+                        else
+                            let mean=${mean}+${value}
+                        fi
+
+                        let countdown=${countdown}-1
+                        sleep 1
+                    done
+
+                    mean=$(echo "${mean}/${measurement_interval}" | bc)
+
+                    if [ -z "${influx_payload}" ]; then
+                        influx_payload="${influx_attrib}=${mean}i"
+                    else
+                        influx_payload="${influx_payload},${influx_attrib}=${mean}i"
+                    fi
+
+                fi
+
+            done
+
+            if [ ! -z "${influx_payload}" ]; then
+                eval "curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
+            fi
+
+        done
+
+    fi
+
+    return ${return_code}
+}
+
 # WHAT: One main to call all the metrics functions
 f__main() {
     let return_code=${SUCCESS}
@@ -593,6 +677,9 @@ f__main() {
     let return_code=${return_code}+${?}
 
     f__nstat_metrics
+    let return_code=${return_code}+${?}
+
+    f__net_metrics
     let return_code=${return_code}+${?}
 
     return ${return_code}
