@@ -1,6 +1,6 @@
 An ash based influxdb client for OpenWRT
 
-##Working:
+## Working:
 ========
 - memory metrics
 - cpu 1,5,15 minute load metrics
@@ -10,12 +10,12 @@ An ash based influxdb client for OpenWRT
 - nstat metrics
 - network adapter metrics
 
-##TODO:
+## TODO:
 ====
 - disk usage metrics
 - diskio metrics
 
-##BEFORE YOU INSTALL:
+## BEFORE YOU INSTALL:
 ===================
 - Needed runtime commands
 ```opkg install coreutils curl bash bc```
