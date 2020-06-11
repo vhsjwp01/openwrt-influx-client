@@ -661,26 +661,13 @@ f__net_metrics() {
 f__main() {
     let return_code=${SUCCESS}
 
-    f__cpu_stat_metrics
-    let return_code=${return_code}+${?}
-
-    f__cpu_load_metrics
-    let return_code=${return_code}+${?}
-
-    f__memory_metrics
-    let return_code=${return_code}+${?}
-
-    f__process_metrics
-    let return_code=${return_code}+${?}
-
-    f__netstat_metrics
-    let return_code=${return_code}+${?}
-
-    f__nstat_metrics
-    let return_code=${return_code}+${?}
-
-    f__net_metrics
-    let return_code=${return_code}+${?}
+    f__cpu_stat_metrics > /dev/null 2>&1 &
+    f__cpu_load_metrics > /dev/null 2>&1 &
+    f__memory_metrics > /dev/null 2>&1 &
+    f__process_metrics > /dev/null 2>&1 &
+    f__netstat_metrics > /dev/null 2>&1 &
+    f__nstat_metrics > /dev/null 2>&1 &
+    f__net_metrics > /dev/null 2>&1 &
 
     return ${return_code}
 }
