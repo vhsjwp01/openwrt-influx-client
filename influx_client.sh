@@ -92,7 +92,7 @@ f__cpu_stat_metrics() {
             local influx_payload="usage_guest=${usage_guest},usage_guest_nice=${usage_guest_nice},usage_idle=${usage_idle},usage_iowait=${usage_iowait},usage_irq=${usage_irq},usage_nice=${usage_nice},usage_softirq=${usage_softirq},usage_steal=${usage_steal},usage_system=${usage_system},usage_user=${usage_user}"
 
             # Send computed metrics to influx
-            eval "curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload}  ${timestamp_ns}'"
+            eval "/bin/nice -19 curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload}  ${timestamp_ns}'"
             let return_code=${return_code}+${?}
         else
             let return_code=${return_code}+${ERROR}
@@ -133,7 +133,7 @@ f__cpu_load_metrics() {
     local influx_payload="load1=${load1},load15=${load15},load5=${load5},n_cpus=${n_cpus}i,n_users=${n_users}i,uptime=${uptime}i,uptime_format=\"${uptime_format}\""
     
     # Send computed metrics to influx
-    eval "curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
+    eval "/bin/nice -19 curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
     let return_code=${return_code}+${?}
 
     return ${return_code}
@@ -354,7 +354,7 @@ f__memory_metrics() {
     fi
     
     ### Send computed metrics to influx
-    eval "curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
+    eval "/bin/nice -19 curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
     let return_code=${return_code}+${?}
 
     return ${return_code}
@@ -385,7 +385,7 @@ f__process_metrics() {
 
     influx_payload="blocked=${blocked}i,dead=${dead}i,idle=${idle}i,paging=${paging}i,running=${running}i,sleeping=${sleeping}i,stopped=${stopped}i,total=${total}i,total_threads=${total_threads}i,unknown=${unknown}i,zombies=${zombies}i"
 
-    eval "curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
+    eval "/bin/nice -19 curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
     let return_code=${return_code}+${?}
 
     return ${return_code}
@@ -421,7 +421,7 @@ f__netstat_metrics() {
 
     local influx_payload="tcp_close=${tcp_close}i,tcp_close_wait=${tcp_close_wait}i,tcp_closing=${tcp_closing}i,tcp_established=${tcp_established}i,tcp_fin_wait1=${tcp_fin_wait1}i,tcp_fin_wait2=${tcp_fin_wait2}i,tcp_last_ack=${tcp_last_ack}i,tcp_listen=${tcp_listen}i,tcp_none=${tcp_none}i,tcp_syn_recv=${tcp_syn_recv}i,tcp_syn_sent=${tcp_syn_sent}i,tcp_time_wait=${tcp_time_wait}i,udp_socket=${udp_socket}i"
 
-    eval "curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
+    eval "/bin/nice -19 curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
 
     return ${return_code}
 }
@@ -568,7 +568,7 @@ f__nstat_metrics() {
         eval "influx_payload=\"\${influx_payload_${influx_payload_part}}\""
 
         if [ ! -z "${influx_payload}" ]; then
-            eval "curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
+            eval "/bin/nice -19 curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
         fi
 
     done
@@ -647,7 +647,7 @@ f__net_metrics() {
             done
 
             if [ ! -z "${influx_payload}" ]; then
-                eval "curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
+                eval "/bin/nice -19 curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
             fi
 
         done
