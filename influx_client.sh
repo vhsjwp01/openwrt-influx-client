@@ -661,18 +661,53 @@ f__net_metrics() {
 f__main() {
     let return_code=${SUCCESS}
 
-    f__cpu_stat_metrics > /dev/null 2>&1 &
-    f__cpu_load_metrics > /dev/null 2>&1 &
-    f__memory_metrics > /dev/null 2>&1 &
-    f__process_metrics > /dev/null 2>&1 &
-    f__netstat_metrics > /dev/null 2>&1 &
-    f__nstat_metrics > /dev/null 2>&1 &
-    f__net_metrics > /dev/null 2>&1 &
+    local arg="${1}"
+
+    case ${arg} in
+
+        cpu)
+            (f__cpu_stat_metrics > /dev/null 2>&1)&
+            sleep 1
+            (f__cpu_load_metrics > /dev/null 2>&1)&
+        ;;
+
+        memory)
+            (f__memory_metrics   > /dev/null 2>&1)&
+            sleep 1
+            (f__process_metrics  > /dev/null 2>&1)&
+        ;;
+
+        network)
+            (f__netstat_metrics  > /dev/null 2>&1)&
+            sleep 1
+            (f__nstat_metrics    > /dev/null 2>&1)&
+            sleep 1
+            (f__net_metrics      > /dev/null 2>&1)&
+        ;;
+
+        *)
+            (f__cpu_stat_metrics > /dev/null 2>&1)&
+            sleep 1
+            (f__cpu_load_metrics > /dev/null 2>&1)&
+            sleep 1
+            (f__memory_metrics   > /dev/null 2>&1)&
+            sleep 1
+            (f__process_metrics  > /dev/null 2>&1)&
+            sleep 1
+            (f__netstat_metrics  > /dev/null 2>&1)&
+            sleep 1
+            (f__nstat_metrics    > /dev/null 2>&1)&
+            sleep 1
+            (f__net_metrics      > /dev/null 2>&1)&
+        ;;
+
+        esac
 
     return ${return_code}
 }
 
 # Main - Do a thing
 f__main "${@}"
+
 exit ${?}
 
