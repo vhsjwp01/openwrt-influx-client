@@ -14,3 +14,11 @@ TODO:
 ====
 - disk usage metrics
 - diskio metrics
+
+BEFORE YOU INSTALL:
+===================
+- Needed runtime commands
+```opkg install coreutils curl bash bc```
+
+- Helpful additional commands
+```opkg install coreutils-cksum diffutils htop vim```
