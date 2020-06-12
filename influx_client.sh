@@ -769,20 +769,15 @@ f__main() {
         ;;
 
         *)
-            (f__cpu_stat_metrics > /dev/null 2>&1)&
-            sleep 1
-            (f__cpu_load_metrics > /dev/null 2>&1)&
-            sleep 1
-            (f__memory_metrics   > /dev/null 2>&1)&
-            sleep 1
-            (f__process_metrics  > /dev/null 2>&1)&
-            sleep 1
             (f__netstat_metrics  > /dev/null 2>&1)&
-            sleep 1
-            (f__nstat_metrics    > /dev/null 2>&1)&
-            sleep 1
+            (f__cpu_load_metrics > /dev/null 2>&1)&
+            (f__memory_metrics   > /dev/null 2>&1)&
+            sleep 4
+            (f__cpu_stat_metrics > /dev/null 2>&1)&
             (f__net_metrics      > /dev/null 2>&1)&
-            sleep 1
+            sleep 4
+            (f__nstat_metrics    > /dev/null 2>&1)&
+            (f__process_metrics  > /dev/null 2>&1)&
             (f__disk_usage       > /dev/null 2>&1)&
 
             #f__cpu_stat_metrics
