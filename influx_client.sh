@@ -657,6 +657,85 @@ f__net_metrics() {
     return ${return_code}
 }
 
+# WHAT: Disk usage metrics
+f__disk_usage() {
+    let return_code=${SUCCESS}
+
+    local influx_payload=""
+    local series=""
+    local timestamp=""
+    local timestamp_ns=""
+    local raw_df_info=""
+    local proc_mount=""
+    local device=""
+    local df_raw_value=""
+    local df_value_multiplier=""
+    local df_free=""
+    local df_used=""
+
+    # Raw relevant /proc/mounts info
+    local raw_proc_mount=$(egrep "\bext4\b|\bjffs2\b|\bsquashfs\b|\bxfs\b" /proc/mounts | sed -e "s| |${x_wing_fighter}|g")
+
+    for proc_mount in ${raw_proc_mount} ; do
+        timestamp=$(date +%s)
+        timestamp_ns=$(echo "${timestamp}*1000000000" | bc)
+
+        proc_mount_line=$(echo "${proc_mount}" | sed -e "s|${x_wing_fighter}| |g")
+        dev_device=$(echo "${proc_mount_line}" | awk '{print $1}')
+        device=$(echo "${dev_device}" | awk -F'/' '{print $NF}')
+        path=$(echo "${proc_mount_line}" | awk '{print $2}' | sed -e 's|^/dev/||g')
+        fstype=$(echo "${proc_mount_line}" | awk '{print $3}' | sed -e 's|^/dev/||g')
+        mode=$(echo "${proc_mount_line}" | awk '{print $4}' | awk -F',' '{print $1}')
+
+        series="disk,device=${device},fstype=${fstype},host=${my_hostname},mode=${mode},path=${path}"
+
+        raw_df_info=$(df -k ${dev_device} 2> /dev/null | tail -1 | egrep -iv "^filesystem")
+
+        # Get free bytes from df -k '${dev_device}'
+        if [ ! -z "${raw_df_info}" ]; then
+            df_raw_value=$(echo "${raw_df_info}" | awk '{print $(NF-2)}')
+            df_value_multiplier=$(f__unit_factor "kb")
+            df_free=$(echo "${df_raw_value}*${df_value_multiplier}" | bc)
+
+            # Get used bytes from df -k '${dev_device}'
+            df_raw_value=$(echo "${raw_df_info}" | awk '{print $(NF-3)}')
+            df_value_multiplier=$(f__unit_factor "kb")
+            df_used=$(echo "${df_raw_value}*${df_value_multiplier}" | bc)
+            
+            # Get total bytes from df -k '${dev_device}'
+            df_raw_value=$(echo "${raw_df_info}" | awk '{print $(NF-4)}')
+            df_value_multiplier=$(f__unit_factor "kb")
+            df_total=$(echo "${df_raw_value}*${df_value_multiplier}" | bc)
+
+            # Get percent used from df -k '${dev_device}'
+            df_used_percent=$(echo "scale=5;${df_used}/${df_total}*100" | bc)
+        else
+            df_free="0"
+            df_used="0"
+            df_total="0"
+            df_used_percent="0.0"
+        fi
+
+        raw_inode_info=$(stat -f ${path} 2> /dev/null | egrep -i "^inodes:" | awk '{print $(NF-2)":"$(NF)}')
+
+        if [ ! -z "${raw_inode_info}" ]; then
+            inodes_total=$(echo "${raw_inode_info}" | awk -F':' '{print $1}')
+            inodes_free=$(echo "${raw_inode_info}" | awk -F':' '{print $NF}')
+            inodes_used=$(echo "${inodes_total}-${inodes_free}" | bc)
+        else
+            inodes_total="0"
+            inodes_free="0"
+            inodes_used="0"
+        fi
+
+        influx_payload="free=${df_free}i,total=${df_total}i,used=${df_used}i,used_percent=${df_used_percent},inodes_free=${inodes_free}i,inodes_total=${inodes_total}i,inodes_used=${inodes_used}i"
+
+        eval "/bin/nice -19 curl -m 3 -s -i -XPOST 'http://${influxdb_host}:${influxdb_host_port}/write?db=${influxdb}' --data-binary '${series} ${influx_payload} ${timestamp_ns}'"
+    done
+
+    return ${return_code}
+}
+
 # WHAT: One main to call all the metrics functions
 f__main() {
     let return_code=${SUCCESS}
@@ -685,6 +764,10 @@ f__main() {
             (f__net_metrics      > /dev/null 2>&1)&
         ;;
 
+        disk)
+            (f__disk_usage       > /dev/null 2>&1)&
+        ;;
+
         *)
             (f__cpu_stat_metrics > /dev/null 2>&1)&
             sleep 1
@@ -699,6 +782,17 @@ f__main() {
             (f__nstat_metrics    > /dev/null 2>&1)&
             sleep 1
             (f__net_metrics      > /dev/null 2>&1)&
+            sleep 1
+            (f__disk_usage       > /dev/null 2>&1)&
+
+            #f__cpu_stat_metrics
+            #f__cpu_load_metrics
+            #f__memory_metrics
+            #f__process_metrics
+            #f__netstat_metrics
+            #f__nstat_metrics
+            #f__net_metrics
+            #f__disk_usage
         ;;
 
         esac

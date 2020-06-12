@@ -8,13 +8,13 @@ A bash based influxdb client for OpenWRT
 - netstat metrics
 - nstat metrics
 - network adapter metrics
+- disk usage metrics
 
 ## TODO:
-- disk usage metrics
 - diskio metrics
 
 ## BEFORE YOU INSTALL:
 - Needed runtime commands:
-```opkg install coreutils curl bash bc```
+```opkg install coreutils coreutils-stat curl bash bc```
 - Helpful additional commands:
 ```opkg install coreutils-cksum diffutils htop vim```
