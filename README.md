@@ -15,6 +15,6 @@ A bash based influxdb client for OpenWRT
 
 ## BEFORE YOU INSTALL:
 - Needed runtime commands:
-```opkg install coreutils coreutils-stat curl bash bc```
+```opkg install bash bc coreutils coreutils-stat curl sysstat```
 - Helpful additional commands:
-```opkg install coreutils-cksum diffutils htop vim```
+```opkg install coreutils-cksum diffutils htop jq vim```
